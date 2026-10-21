@@ -39,7 +39,7 @@ serve: ## Start the production server locally with gunicorn
 	gunicorn --bind 0.0.0.0:$${LOANWISE_PORT:-5000} --workers 2 wsgi:app
 
 build-frontend: ## Build the React app into frontend/dist
-	cd frontend && npm install && npm run build
+	cd frontend && npm install --legacy-peer-deps && npm run build
 
 docker-build: ## Build the production Docker image
 	docker build -t $(IMAGE) .

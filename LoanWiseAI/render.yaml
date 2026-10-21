@@ -1,0 +1,23 @@
+# Render Blueprint: one-click deploy of LoanWise AI on Render's free plan.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Free-plan notes:
+#   - The service sleeps after 15 minutes without traffic; the next visit takes ~1 minute to wake.
+#   - The disk is ephemeral, so prediction history (SQLite) resets on restart, sleep or redeploy.
+#   - The pre-built frontend in frontend/dist is served by Flask, so no Node.js build is needed.
+services:
+  - type: web
+    name: loanwise-ai
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && pip install -e . --no-deps
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 60   # 1 worker fits the 512 MB free plan
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1   # matches the Python the model was trained with
+      - key: LOANWISE_LOG_FORMAT
+        value: json
+      - key: LOANWISE_LOG_LEVEL
+        value: INFO

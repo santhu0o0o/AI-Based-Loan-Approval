@@ -1,0 +1,23 @@
+# Keep the build context small and free of local state.
+.git
+.venv
+**/__pycache__
+**/*.pyc
+.mypy_cache
+.ruff_cache
+.pytest_cache
+*.egg-info
+build
+dist
+instance
+.env
+tests
+docs
+scripts
+run.sh
+run.bat
+artifacts/reports
+data/raw/loan.csv
+frontend/node_modules
+frontend/dist
+frontend/screenshots

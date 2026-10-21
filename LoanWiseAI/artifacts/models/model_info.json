@@ -1,0 +1,74 @@
+{
+  "chosen_model": "Logistic Regression",
+  "selection_metric": "Highest mean 5-fold CV accuracy on the training split (hold-out test set is used only for reporting); ties within 0.001 go to the lower CV std.",
+  "models": [
+    {
+      "name": "Logistic Regression",
+      "accuracy": 0.8537,
+      "precision": 0.8317,
+      "recall": 0.9882,
+      "f1": 0.9032,
+      "cv_accuracy_mean": 0.7983,
+      "cv_accuracy_std": 0.0457
+    },
+    {
+      "name": "Decision Tree",
+      "accuracy": 0.8537,
+      "precision": 0.8317,
+      "recall": 0.9882,
+      "f1": 0.9032,
+      "cv_accuracy_mean": 0.784,
+      "cv_accuracy_std": 0.0461
+    },
+    {
+      "name": "Random Forest",
+      "accuracy": 0.8537,
+      "precision": 0.8317,
+      "recall": 0.9882,
+      "f1": 0.9032,
+      "cv_accuracy_mean": 0.7962,
+      "cv_accuracy_std": 0.0436
+    }
+  ],
+  "feature_importance": [
+    {
+      "feature": "Credit History",
+      "importance": 0.3292
+    },
+    {
+      "feature": "Property Area",
+      "importance": 0.2234
+    },
+    {
+      "feature": "Number of Dependents",
+      "importance": 0.1302
+    },
+    {
+      "feature": "Marital Status",
+      "importance": 0.1143
+    },
+    {
+      "feature": "Education",
+      "importance": 0.0701
+    },
+    {
+      "feature": "EMI-to-Income Ratio",
+      "importance": 0.0621
+    },
+    {
+      "feature": "Loan Term",
+      "importance": 0.055
+    },
+    {
+      "feature": "Gender",
+      "importance": 0.0158
+    }
+  ],
+  "importance_method": "absolute logistic-regression coefficients (scaled features)",
+  "dataset": {
+    "rows": 614,
+    "approved": 422,
+    "rejected": 192
+  },
+  "trained_at": "2026-10-20T17:57:26+00:00"
+}

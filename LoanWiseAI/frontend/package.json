@@ -1,0 +1,23 @@
+{
+  "name": "loanwise-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LoanWise AI - React frontend (bundled with esbuild).",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "mock": "node scripts/mock-api.mjs",
+    "shots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "framer-motion": "11.11.17",
+    "lucide-react": "0.460.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "6.28.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

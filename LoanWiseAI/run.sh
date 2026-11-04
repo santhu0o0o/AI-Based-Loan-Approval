@@ -103,8 +103,34 @@ if [[ $NEED_FRONTEND_BUILD -eq 1 ]]; then
 fi
 
 # --- 6. Pick a free port -----------------------------------------------------
-# macOS uses port 5000 for AirPlay Receiver, so fall back to 8000 if busy.
-port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1; }
+# Check if a port can actually be bound (not just TCP connect)
+port_busy() {
+  "$VPY" -c "
+import socket, sys
+host = sys.argv[1]
+port = int(sys.argv[2])
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind((host, port))
+    s.close()
+    sys.exit(1)
+except OSError:
+    sys.exit(0)
+" "${LOANWISE_HOST:-0.0.0.0}" "$1" 2>/dev/null
+}
+
+server_up() {
+  "$VPY" -c "
+import socket, sys
+s = socket.socket()
+s.settimeout(0.3)
+res = s.connect_ex(('127.0.0.1', int(sys.argv[1])))
+s.close()
+sys.exit(0 if res == 0 else 1)
+" "$1" 2>/dev/null
+}
+
 export LOANWISE_HOST="${LOANWISE_HOST:-127.0.0.1}"
 if [[ -z "${LOANWISE_PORT:-}" ]]; then
   LOANWISE_PORT=5000
@@ -114,14 +140,17 @@ if [[ -z "${LOANWISE_PORT:-}" ]]; then
   fi
 fi
 export LOANWISE_PORT
-port_busy "$LOANWISE_PORT" && die "Port $LOANWISE_PORT is already in use. Run: LOANWISE_PORT=8080 ./run.sh"
+if port_busy "$LOANWISE_PORT"; then
+  warn "Port $LOANWISE_PORT is in use. Using 8080 instead."
+  LOANWISE_PORT=8080
+fi
 
 URL="http://$LOANWISE_HOST:$LOANWISE_PORT"
 
 # --- 7. Open browser once the server is up ----------------------------------
 (
   for _ in $(seq 1 40); do
-    if port_busy "$LOANWISE_PORT"; then
+    if server_up "$LOANWISE_PORT"; then
       if command -v open >/dev/null 2>&1; then open "$URL"
       elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1
       fi

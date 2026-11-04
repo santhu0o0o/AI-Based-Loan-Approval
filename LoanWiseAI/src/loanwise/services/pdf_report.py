@@ -30,11 +30,28 @@ from loanwise.domain.formatting import format_inr
 
 
 def _clean_str(val: Any) -> str:
-    """Escape text for ReportLab XML/HTML Paragraph."""
+    """Escape text for ReportLab XML/HTML Paragraph and convert ₹ to Rs."""
     if val is None:
         return ""
-    s = str(val)
+    s = str(val).replace("₹", "Rs. ")
+    while "Rs. Rs. " in s:
+        s = s.replace("Rs. Rs. ", "Rs. ")
+    while "Rs.  " in s:
+        s = s.replace("Rs.  ", "Rs. ")
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _format_currency(val: Any) -> str:
+    """Format rupee amount using standard 'Rs.' prefix for reliable PDF font rendering."""
+    if val is None or val == "":
+        return "Rs. 0"
+    try:
+        num = float(val)
+    except (ValueError, TypeError):
+        return f"Rs. {val}"
+    # Use Indian grouping without the Unicode rupee symbol
+    digits = format_inr(num).replace("₹", "").strip()
+    return f"Rs. {digits}"
 
 
 def generate_loan_report_pdf(
@@ -189,7 +206,7 @@ def generate_loan_report_pdf(
     conf_label = str(result.get("confidence_label", "Medium"))
     headline = str(result.get("headline", verdict_text))
     emi_val = result.get("emi_estimate", 0.0)
-    emi_display = f"₹{format_inr(emi_val)} / month" if emi_val else "N/A"
+    emi_display = f"{_format_currency(emi_val)} / month" if emi_val else "N/A"
 
     verdict_para = Paragraph(
         f"<font size='16' color='{badge_text_color.hexval()}'><b>{verdict_text}</b></font><br/>"
@@ -249,19 +266,19 @@ def generate_loan_report_pdf(
     profile_data = [
         [
             Paragraph("<b>Applicant Income:</b>", bold_label),
-            Paragraph(f"₹{format_inr(applicant_inc)} / mo", body_style),
+            Paragraph(f"{_format_currency(applicant_inc)} / mo", body_style),
             Paragraph("<b>Requested Loan:</b>", bold_label),
-            Paragraph(f"₹{format_inr(loan_amt)}", body_style),
+            Paragraph(f"{_format_currency(loan_amt)}", body_style),
         ],
         [
             Paragraph("<b>Co-Applicant Income:</b>", bold_label),
-            Paragraph(f"₹{format_inr(coapplicant_inc)} / mo", body_style),
+            Paragraph(f"{_format_currency(coapplicant_inc)} / mo", body_style),
             Paragraph("<b>Loan Tenure:</b>", bold_label),
             Paragraph(f"{term_yrs} years ({loan_term} mos)", body_style),
         ],
         [
             Paragraph("<b>Total Monthly Income:</b>", bold_label),
-            Paragraph(f"₹{format_inr(tot_inc)} / mo", body_style),
+            Paragraph(f"{_format_currency(tot_inc)} / mo", body_style),
             Paragraph("<b>Debt-to-Income (DTI):</b>", bold_label),
             Paragraph(f"{emi_ratio_pct} ({afford_band})", body_style),
         ],

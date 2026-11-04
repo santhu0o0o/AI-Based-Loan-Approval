@@ -103,21 +103,13 @@ if [[ $NEED_FRONTEND_BUILD -eq 1 ]]; then
 fi
 
 # --- 6. Pick a free port -----------------------------------------------------
-# Check if a port can actually be bound (not just TCP connect)
+# Uses the same check as the server itself (bind + loopback listener probe, IPv4/IPv6)
 port_busy() {
-  "$VPY" -c "
-import socket, sys
-host = sys.argv[1]
-port = int(sys.argv[2])
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind((host, port))
-    s.close()
-    sys.exit(1)
-except OSError:
-    sys.exit(0)
-" "${LOANWISE_HOST:-0.0.0.0}" "$1" 2>/dev/null
+  PYTHONPATH="$ROOT_DIR/src" "$VPY" -c "
+import sys
+from loanwise.api.dev_server import _is_port_available
+sys.exit(1 if _is_port_available(sys.argv[1], int(sys.argv[2])) else 0)
+" "${LOANWISE_HOST:-127.0.0.1}" "$1" 2>/dev/null
 }
 
 server_up() {

@@ -84,6 +84,26 @@ class HistoryRepository:
             cursor = conn.execute(_INSERT, row)
             return int(cursor.lastrowid or 0)
 
+    def get(self, prediction_id: int) -> dict[str, Any] | None:
+        """Fetch a single prediction row by ID."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT id, created_at, inputs, approved, verdict, confidence, result FROM predictions WHERE id = ?",
+                (int(prediction_id),),
+            ).fetchone()
+        if not row:
+            return None
+        res_data = json.loads(row["result"]) if row["result"] else {}
+        return {
+            "id": row["id"],
+            "created_at": row["created_at"],
+            "inputs": json.loads(row["inputs"]),
+            "approved": bool(row["approved"]),
+            "verdict": row["verdict"],
+            "confidence": row["confidence"],
+            "result": res_data,
+        }
+
     def list_recent(self, limit: int = 50) -> list[HistoryItem]:
         """Return up to ``limit`` predictions, newest first."""
         with self._connect() as conn:

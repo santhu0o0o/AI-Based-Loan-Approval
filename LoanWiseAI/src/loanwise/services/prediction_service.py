@@ -73,6 +73,9 @@ class PredictionResult:
             "warnings": self.warnings,
             "guardrail_applied": d.guardrail_applied,
             "emi_estimate": d.emi_estimate,
+            "detailed_explanation": d.detailed_explanation,
+            "improvement_suggestions": d.improvement_suggestions,
+            "financial_metrics": d.financial_metrics,
         }
 
 

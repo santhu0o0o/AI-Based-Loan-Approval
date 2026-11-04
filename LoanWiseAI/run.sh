@@ -66,8 +66,9 @@ REQ_HASH="$(cat requirements.txt pyproject.toml 2>/dev/null | shasum | awk '{pri
 if [[ ! -f "$STAMP_FILE" || "$(cat "$STAMP_FILE")" != "$REQ_HASH" ]]; then
   step "Installing Python dependencies"
   "$VPY" -m pip install --quiet --upgrade pip
+  "$VPY" -m pip install --quiet setuptools wheel
   "$VPY" -m pip install --quiet -r requirements.txt
-  "$VPY" -m pip install --quiet -e . --no-deps
+  "$VPY" -m pip install --quiet -e . --no-deps --no-build-isolation
   echo "$REQ_HASH" > "$STAMP_FILE"
 fi
 
@@ -84,9 +85,16 @@ if [[ $RETRAIN -eq 1 || ! -f "$MODEL_FILE" ]]; then
 fi
 
 # --- 5. Frontend -------------------------------------------------------------
+NEED_FRONTEND_BUILD=0
 if [[ ! -f "$FRONTEND_DIST" ]]; then
+  NEED_FRONTEND_BUILD=1
+elif [[ $(find frontend/src -type f -newer "$FRONTEND_DIST" 2>/dev/null | wc -l) -gt 0 ]]; then
+  NEED_FRONTEND_BUILD=1
+fi
+
+if [[ $NEED_FRONTEND_BUILD -eq 1 ]]; then
   if command -v npm >/dev/null 2>&1; then
-    step "Building the frontend (first run only)"
+    step "Building the frontend"
     (cd frontend && npm install --no-audit --no-fund && npm run build)
   else
     warn "frontend/dist is missing and npm is not installed. The API will run, but the website won't."

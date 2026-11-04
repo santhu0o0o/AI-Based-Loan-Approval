@@ -66,4 +66,24 @@ export const api = {
   clearHistory: () => request('/api/history', { method: 'DELETE' }),
   modelInfo: () => request('/api/model-info'),
   health: () => request('/api/health', { timeout: 5000 }),
+  downloadReportPdf: async (payload) => {
+    const res = await fetch('/api/report/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new ApiError('server', err?.message || 'Could not download PDF report.');
+    }
+    return res.blob();
+  },
+  downloadHistoryPdf: async (id) => {
+    const res = await fetch(`/api/history/${id}/pdf`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new ApiError('server', err?.message || 'Could not download PDF report.');
+    }
+    return res.blob();
+  },
 };

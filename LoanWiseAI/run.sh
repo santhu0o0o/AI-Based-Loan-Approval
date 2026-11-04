@@ -66,8 +66,9 @@ REQ_HASH="$(cat requirements.txt pyproject.toml 2>/dev/null | shasum | awk '{pri
 if [[ ! -f "$STAMP_FILE" || "$(cat "$STAMP_FILE")" != "$REQ_HASH" ]]; then
   step "Installing Python dependencies"
   "$VPY" -m pip install --quiet --upgrade pip
+  "$VPY" -m pip install --quiet setuptools wheel
   "$VPY" -m pip install --quiet -r requirements.txt
-  "$VPY" -m pip install --quiet -e . --no-deps
+  "$VPY" -m pip install --quiet -e . --no-deps --no-build-isolation
   echo "$REQ_HASH" > "$STAMP_FILE"
 fi
 
@@ -84,9 +85,16 @@ if [[ $RETRAIN -eq 1 || ! -f "$MODEL_FILE" ]]; then
 fi
 
 # --- 5. Frontend -------------------------------------------------------------
+NEED_FRONTEND_BUILD=0
 if [[ ! -f "$FRONTEND_DIST" ]]; then
+  NEED_FRONTEND_BUILD=1
+elif [[ $(find frontend/src -type f -newer "$FRONTEND_DIST" 2>/dev/null | wc -l) -gt 0 ]]; then
+  NEED_FRONTEND_BUILD=1
+fi
+
+if [[ $NEED_FRONTEND_BUILD -eq 1 ]]; then
   if command -v npm >/dev/null 2>&1; then
-    step "Building the frontend (first run only)"
+    step "Building the frontend"
     (cd frontend && npm install --no-audit --no-fund && npm run build)
   else
     warn "frontend/dist is missing and npm is not installed. The API will run, but the website won't."
@@ -95,8 +103,26 @@ if [[ ! -f "$FRONTEND_DIST" ]]; then
 fi
 
 # --- 6. Pick a free port -----------------------------------------------------
-# macOS uses port 5000 for AirPlay Receiver, so fall back to 8000 if busy.
-port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1; }
+# Uses the same check as the server itself (bind + loopback listener probe, IPv4/IPv6)
+port_busy() {
+  PYTHONPATH="$ROOT_DIR/src" "$VPY" -c "
+import sys
+from loanwise.api.dev_server import _is_port_available
+sys.exit(1 if _is_port_available(sys.argv[1], int(sys.argv[2])) else 0)
+" "${LOANWISE_HOST:-127.0.0.1}" "$1" 2>/dev/null
+}
+
+server_up() {
+  "$VPY" -c "
+import socket, sys
+s = socket.socket()
+s.settimeout(0.3)
+res = s.connect_ex(('127.0.0.1', int(sys.argv[1])))
+s.close()
+sys.exit(0 if res == 0 else 1)
+" "$1" 2>/dev/null
+}
+
 export LOANWISE_HOST="${LOANWISE_HOST:-127.0.0.1}"
 if [[ -z "${LOANWISE_PORT:-}" ]]; then
   LOANWISE_PORT=5000
@@ -106,14 +132,17 @@ if [[ -z "${LOANWISE_PORT:-}" ]]; then
   fi
 fi
 export LOANWISE_PORT
-port_busy "$LOANWISE_PORT" && die "Port $LOANWISE_PORT is already in use. Run: LOANWISE_PORT=8080 ./run.sh"
+if port_busy "$LOANWISE_PORT"; then
+  warn "Port $LOANWISE_PORT is in use. Using 8080 instead."
+  LOANWISE_PORT=8080
+fi
 
 URL="http://$LOANWISE_HOST:$LOANWISE_PORT"
 
 # --- 7. Open browser once the server is up ----------------------------------
 (
   for _ in $(seq 1 40); do
-    if port_busy "$LOANWISE_PORT"; then
+    if server_up "$LOANWISE_PORT"; then
       if command -v open >/dev/null 2>&1; then open "$URL"
       elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1
       fi

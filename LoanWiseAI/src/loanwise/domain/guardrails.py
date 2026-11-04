@@ -75,6 +75,9 @@ class Decision:
     guardrail_applied: bool = False
     emi_estimate: float = 0.0
     approval_probability: float = 0.0  # model's raw P(approve), kept for history/debugging
+    detailed_explanation: str = ""
+    improvement_suggestions: list[dict[str, str]] = field(default_factory=list)
+    financial_metrics: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -145,16 +148,46 @@ def apply_guardrails(cleaned: dict[str, Any], p_approve: float) -> Decision:
 
     verdict, headline = _verdict(approved=approved, guardrail_applied=guardrail_applied)
     confidence = round(float(confidence), 4)
+    reasons = _explain(cleaned, figures, overrides, good_credit=good_credit)
+
+    # Detailed explanation & improvement suggestions
+    from loanwise.domain.analysis import (
+        compute_financial_metrics,
+        generate_detailed_explanation,
+        generate_improvement_suggestions,
+    )
+
+    lbl = confidence_label(confidence)
+    explanation = generate_detailed_explanation(
+        cleaned,
+        figures,
+        approved=approved,
+        guardrail_applied=guardrail_applied,
+        confidence=confidence,
+        confidence_label=lbl,
+        p_approve=p_approve,
+    )
+    suggestions = generate_improvement_suggestions(
+        cleaned,
+        figures,
+        approved=approved,
+        guardrail_applied=guardrail_applied,
+    )
+    metrics = compute_financial_metrics(cleaned, figures)
+
     return Decision(
         approved=approved,
         verdict=verdict,
         headline=headline,
         confidence=confidence,
-        confidence_label=confidence_label(confidence),
-        reasons=_explain(cleaned, figures, overrides, good_credit=good_credit),
+        confidence_label=lbl,
+        reasons=reasons,
         guardrail_applied=guardrail_applied,
         emi_estimate=round(figures.emi, 2),
         approval_probability=round(p_approve, 4),
+        detailed_explanation=explanation,
+        improvement_suggestions=suggestions,
+        financial_metrics=metrics,
     )
 
 

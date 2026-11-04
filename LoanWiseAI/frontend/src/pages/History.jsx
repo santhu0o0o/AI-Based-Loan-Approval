@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, CircleCheck, CircleX, RefreshCw, ServerCrash, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowRight, CircleCheck, CircleX, FileDown, RefreshCw, ServerCrash, Trash2, TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
@@ -55,6 +55,23 @@ export default function History() {
       toast.show({ kind: 'error', message: err.message });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const downloadPdf = async (id) => {
+    try {
+      const blob = await api.downloadHistoryPdf(id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `loanwise-assessment-report-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.show({ kind: 'success', message: `Report #${id} downloaded.` });
+    } catch (err) {
+      toast.show({ kind: 'error', message: err.message || 'Could not download PDF.' });
     }
   };
 
@@ -187,6 +204,17 @@ export default function History() {
                       <dd>{it.confidence != null ? percent(it.confidence) : '—'}</dd>
                     </div>
                   </dl>
+                  <div className="history-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => downloadPdf(it.id)}
+                      title="Download assessment PDF report"
+                    >
+                      <FileDown size={16} aria-hidden="true" />
+                      PDF Report
+                    </button>
+                  </div>
                 </li>
               );
             })}

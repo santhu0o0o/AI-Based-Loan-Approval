@@ -32,8 +32,9 @@ if not exist "%VPY%" (
   %PYTHON% -m venv "%VENV_DIR%" || exit /b 1
   echo ==^> Installing Python dependencies
   "%VPY%" -m pip install --quiet --upgrade pip
+  "%VPY%" -m pip install --quiet setuptools wheel
   "%VPY%" -m pip install --quiet -r requirements.txt || exit /b 1
-  "%VPY%" -m pip install --quiet -e . --no-deps || exit /b 1
+  "%VPY%" -m pip install --quiet -e . --no-deps --no-build-isolation || exit /b 1
 )
 
 REM --- 3. Tests (optional) ---------------------------------------------------

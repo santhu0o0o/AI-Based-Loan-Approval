@@ -6,4 +6,5 @@ numpy>=1.26,<3
 scikit-learn==1.9.1   # exact: the saved model is a pickle of this version's classes
 joblib>=1.4,<2
 matplotlib>=3.8,<4    # EDA charts during training
+reportlab>=4.0,<6.0     # PDF report generation
 gunicorn>=23,<24      # production WSGI server (wsgi:app)
